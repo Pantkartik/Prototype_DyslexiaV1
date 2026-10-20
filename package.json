@@ -1,0 +1,13 @@
+{
+  "name": "sproutly-ipad-app",
+  "version": "1.0.0",
+  "description": "Sproutly — iPad app for dyslexic learners",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

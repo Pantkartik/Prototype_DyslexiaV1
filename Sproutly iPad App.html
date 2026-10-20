@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sproutly — iPad app for dyslexic learners</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="core.jsx"></script>
+<script type="text/babel" src="auth.jsx"></script>
+<script type="text/babel" src="learn.jsx"></script>
+<script type="text/babel" src="lesson.jsx"></script>
+<script type="text/babel" src="write.jsx"></script>
+<script type="text/babel" src="home.jsx"></script>
+<script type="text/babel" src="profile.jsx"></script>
+<script type="text/babel" src="parent.jsx"></script>
+<script type="text/babel">
+const SCREENS = {
+  login: LoginScreen, signup: SignupScreen, role: RoleScreen, kidSetup: KidSetupScreen,
+  home: HomeScreen, story: StoryScreen, learn: LearnScreen, lesson: LessonScreen, checkpoint: CheckpointScreen,
+  write: WriteScreen, me: ProfileScreen, parentGate: ParentGateScreen, parent: ParentScreen,
+  congrats: ()=>{ const {go}=useApp(); const L=getLetter('C'); return <ResultScreen pass stars={3} title="You learned C!" sub="C is for Cat" L={L} onContinue={()=>go('learn')} onPractice={()=>go('write',{letter:'C'})}/>; },
+  retry: ()=>{ const {go}=useApp(); return <div style={{position:'absolute',inset:0}}><LessonScreen/><RetryOverlay L={getLetter('D')} hint={'Listen for "duh". d has its own shape — look for it carefully.'} onRetry={()=>go('lesson',{letter:'D'})} onExit={()=>go('learn')}/></div>; },
+};
+const JUMPS = [
+  ['Auth',[['login','Login'],['signup','Sign up'],['role','Parent / Child'],['kidSetup','Child setup']]],
+  ['Child',[['home','Home'],['story','Story'],['learn','Learn map'],['lesson','Lesson D'],['congrats','Congrats'],['retry','Retry'],['checkpoint','Checkpoint'],['write','Write'],['me','Profile']]],
+  ['Parent',[['parentGate','Parent gate'],['parent','Dashboard']]],
+];
+const LS_MAP = { normal:['.01em','.04em','1.5'], wide:['.04em','.12em','1.6'], extra:['.08em','.22em','1.75'] };
+const TINT_MAP = { cream:'transparent', peach:'#FFF0E6', mint:'#EEF8EF', blue:'#EAF3FB', lilac:'#F4EFFB' };
+const FONT_MAP = { Lexend:"'Lexend',sans-serif", Andika:"'Andika',sans-serif", Atkinson:"'Atkinson Hyperlegible',sans-serif" };
+
+function App(){
+  const store = useAppStore();
+  const { route, settings, go } = store;
+  const [scale,setScale]=useState(1);
+  useEffect(()=>{ const f=()=>setScale(Math.min((window.innerWidth-32)/1242,(window.innerHeight-52-32)/882,1.2)); f(); window.addEventListener('resize',f); return ()=>window.removeEventListener('resize',f); },[]);
+  useEffect(()=>{ speechState.rate = settings.rate; sfxState.on = settings.sfx; },[settings]);
+  const Screen = SCREENS[route.name] || LoginScreen;
+  const [ls,ws,lh] = LS_MAP[settings.spacing]||LS_MAP.wide;
+  const tintColor = TINT_MAP[settings.tint];
+  const vars = { '--font-ui':FONT_MAP[settings.font], '--ls':ls, '--ws':ws, '--lh':lh, '--fs':settings.size, '--tint':tintColor, '--tint-vis':tintColor==='transparent'?'hidden':'visible', fontFamily:'var(--font-ui)' };
+  const jump = id => {
+    if(id==='lesson') return go('lesson',{letter:'D'});
+    if(id==='story') return go('story',{id:'bee'});
+    if(id==='checkpoint') return go('checkpoint',{id:'cp1'});
+    if(id==='parentGate') return go('parentGate',{next:'parent'});
+    go(id);
+  };
+  const reset = ()=>{ store.setProgress(DEFAULT_PROGRESS); store.setSettings(DEFAULT_SETTINGS); sessionStorage.removeItem('sp_mapx'); };
+  return <AppCtx.Provider value={store}>
+    <div className="review-bar">
+      <b>Sproutly</b>
+      {JUMPS.map(([g,items],gi)=><React.Fragment key={g}>{gi>0&&<span className="sep"/>}<span style={{color:'#7f8a83',marginRight:2}}>{g}</span>
+        {items.map(([id,l])=><button key={id} className={route.name===id?'on':''} onClick={()=>jump(id)}>{l}</button>)}</React.Fragment>)}
+      <span className="sep"/><button onClick={reset}>Reset progress</button>
+    </div>
+    <div className="stage">
+      <div className="device" style={{transform:`scale(${scale})`}}>
+        <div className="screen" style={vars} data-screen-label={route.name}>
+          <StatusBar/>
+          <Screen key={route.name+JSON.stringify(route)}/>
+          <Toast/>
+        </div>
+      </div>
+    </div>
+  </AppCtx.Provider>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
